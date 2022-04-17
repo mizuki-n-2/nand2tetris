@@ -15,5 +15,22 @@ CHIP RAM8 {
     OUT out[16];
 
     PARTS:
-    // Put your code here:
+    DMux8Way(in=true, sel[0..2]=address[0..2], a=a, b=b, c=c, d=d, e=e, f=f, g=g, h=h);
+    And(a=a, b=load, out=aload);
+    And(a=b, b=load, out=bload);
+    And(a=c, b=load, out=cload);
+    And(a=d, b=load, out=dload);
+    And(a=e, b=load, out=eload);
+    And(a=f, b=load, out=fload);
+    And(a=g, b=load, out=gload);
+    And(a=h, b=load, out=hload);
+    Register(in[0..15]=in[0..15], load=aload, out[0..15]=out1);
+    Register(in[0..15]=in[0..15], load=bload, out[0..15]=out2);
+    Register(in[0..15]=in[0..15], load=cload, out[0..15]=out3);
+    Register(in[0..15]=in[0..15], load=dload, out[0..15]=out4);
+    Register(in[0..15]=in[0..15], load=eload, out[0..15]=out5);
+    Register(in[0..15]=in[0..15], load=fload, out[0..15]=out6);
+    Register(in[0..15]=in[0..15], load=gload, out[0..15]=out7);
+    Register(in[0..15]=in[0..15], load=hload, out[0..15]=out8);
+    Mux8Way16(a[0..15]=out1, b[0..15]=out2, c[0..15]=out3, d[0..15]=out4, e[0..15]=out5, f[0..15]=out6, g[0..15]=out7, h[0..15]=out8, sel[0..2]=address[0..2], out[0..15]=out);
 }
