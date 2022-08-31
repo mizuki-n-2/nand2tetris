@@ -1,3 +1,7 @@
 tools
 projects/demo
 .idea
+*.hack
+*.cmp
+*.out
+*.tst
