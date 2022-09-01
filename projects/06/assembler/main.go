@@ -4,6 +4,7 @@ import (
 	"assembler/ast"
 	"assembler/code"
 	"assembler/parser"
+	"assembler/symboltable"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -27,14 +28,42 @@ func main() {
 }
 
 func Assemble(input string) []string {
+	symbolTable := symboltable.New()
 	binaryArray := []string{}
 	p := parser.New(input)
 
+	currentCommandAddress := 0
+	// 1回目のパス
+	for p.HasMoreCommands() {
+		switch p.CommandType() {
+		case ast.A_COMMAND, ast.C_COMMAND:
+			currentCommandAddress++
+		case ast.L_COMMAND:
+			symbolTable.AddEntry(p.Symbol(), currentCommandAddress)
+		}
+
+		p.Advance()
+	}
+
+	p.ResetParsePosition()
+
+	variableCount := 0
+	initialAddress := 16
+	// 2回目のパス
 	for p.HasMoreCommands() {
 		switch p.CommandType() {
 		case ast.A_COMMAND:
 			symbol := p.Symbol()
-			value, _ := strconv.Atoi(symbol)
+			value, err := strconv.Atoi(symbol)
+			if err != nil {
+				if symbolTable.Contains(symbol) {
+					value = symbolTable.GetAddress(symbol)
+				} else {
+					symbolTable.AddEntry(symbol, initialAddress+variableCount)
+					value = initialAddress + variableCount
+					variableCount++
+				}
+			}
 			binary := fmt.Sprintf("%016b", value)
 			binaryArray = append(binaryArray, binary)
 		case ast.C_COMMAND:
@@ -43,8 +72,6 @@ func Assemble(input string) []string {
 			jump := code.Jump(p.Jump())
 			binary := "111" + comp + dest + jump
 			binaryArray = append(binaryArray, binary)
-		case ast.L_COMMAND:
-		default:
 		}
 
 		p.Advance()

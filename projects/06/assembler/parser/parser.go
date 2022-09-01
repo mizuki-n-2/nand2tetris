@@ -34,6 +34,7 @@ func (p *Parser) Advance() {
 }
 
 func (p *Parser) CommandType() ast.CommandType {
+	p.removeWhiteSpace()
 	if p.commandStrList[p.currentCommandIdx] == "" {
 		return ""
 	}
@@ -92,7 +93,7 @@ func (p *Parser) parseCCommand() *ast.CCommand {
 
 	comp := ""
 	for p.hasMoreChar() {
-		if p.peekCharIs(';') {
+		if p.peekCharIs(';') || p.peekCharIs('/') {
 			break
 		}
 		comp += string(p.commandStrList[p.currentCommandIdx][p.readPosition])
@@ -104,6 +105,9 @@ func (p *Parser) parseCCommand() *ast.CCommand {
 
 	jump := ""
 	for p.hasMoreChar() {
+		if p.peekCharIs('/') {
+			break
+		}
 		jump += string(p.commandStrList[p.currentCommandIdx][p.readPosition])
 		p.readChar()
 	}
@@ -169,4 +173,9 @@ func (p *Parser) removeWhiteSpace() {
 func (p *Parser) resetPosition() {
 	p.position = 0
 	p.readPosition = 0
+}
+
+func (p *Parser) ResetParsePosition() {
+	p.resetPosition()
+	p.currentCommandIdx = 0
 }
