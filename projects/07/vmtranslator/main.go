@@ -25,10 +25,11 @@ func main() {
 }
 
 func Translate(input string, asmFile string) {
-	cw := codewriter.New(asmFile)
+	cw := codewriter.New()
+
+	// TODO: 複数ファイル対応
 	p := parser.New(input)
 
-	// 仮
 	cw.SetFileName(asmFile)
 
 	for p.HasMoreCommands() {

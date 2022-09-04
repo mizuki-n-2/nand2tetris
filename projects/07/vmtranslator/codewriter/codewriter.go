@@ -4,18 +4,21 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"os"
+	"path"
 	"strconv"
+	"strings"
 	"vmtranslator/ast"
 )
 
 type CodeWriter struct {
-	fileName string
-	assembly []byte
+	fileName    string
+	assembly    []byte
+	vmClassName string
 }
 
-func New(fileName string) *CodeWriter {
+func New() *CodeWriter {
 	assembly := getInitAssembly()
-	return &CodeWriter{fileName: fileName, assembly: []byte(assembly)}
+	return &CodeWriter{assembly: []byte(assembly)}
 }
 
 func getInitAssembly() string {
@@ -30,6 +33,7 @@ func getInitAssembly() string {
 
 func (cw *CodeWriter) SetFileName(fileName string) {
 	cw.fileName = fileName
+	cw.vmClassName = strings.Split(path.Base(fileName), ".")[0]
 }
 
 func (cw *CodeWriter) WriteArithmetic(command ast.CommandSymbol) {
@@ -186,7 +190,7 @@ func (cw *CodeWriter) getPushAssembly(segment ast.SegmentSymbol, index int) stri
 	switch segment {
 	case ast.CONSTANT:
 		assembly = cw.getPushConstantAssembly(index)
-	case ast.LOCAL, ast.ARGUMENT, ast.THIS, ast.THAT:
+	case ast.LOCAL, ast.ARGUMENT, ast.THIS, ast.THAT, ast.TEMP, ast.POINTER:
 		assembly = cw.getPushMemoryAccessAssembly(segment, index)
 	}
 
@@ -205,21 +209,32 @@ func (cw *CodeWriter) getPushConstantAssembly(index int) string {
 	return assembly
 }
 
+var TEMP_BASE_ADDRESS = 5
+var POINTER_BASE_ADDRESS = 3
+
 func (cw *CodeWriter) getPushMemoryAccessAssembly(segment ast.SegmentSymbol, index int) string {
 	assembly := ""
 	assembly += "@" + strconv.Itoa(index) + "\r\n"
 	assembly += "D=A" + "\r\n"
+
 	switch segment {
 	case ast.LOCAL:
 		assembly += "@LCL" + "\r\n"
+		assembly += "A=M" + "\r\n"
 	case ast.ARGUMENT:
 		assembly += "@ARG" + "\r\n"
+		assembly += "A=M" + "\r\n"
 	case ast.THIS:
 		assembly += "@THIS" + "\r\n"
+		assembly += "A=M" + "\r\n"
 	case ast.THAT:
 		assembly += "@THAT" + "\r\n"
+		assembly += "A=M" + "\r\n"
+	case ast.TEMP:
+		assembly += "@" + strconv.Itoa(TEMP_BASE_ADDRESS) + "\r\n"
+	case ast.POINTER:
+		assembly += "@" + strconv.Itoa(POINTER_BASE_ADDRESS) + "\r\n"
 	}
-	assembly += "A=M" + "\r\n"
 	assembly += "A=D+A" + "\r\n"
 	assembly += "D=M" + "\r\n"
 	assembly += "@SP" + "\r\n"
@@ -233,8 +248,47 @@ func (cw *CodeWriter) getPushMemoryAccessAssembly(segment ast.SegmentSymbol, ind
 func (cw *CodeWriter) getPopAssembly(segment ast.SegmentSymbol, index int) string {
 	var assembly string
 	switch segment {
-
+	case ast.LOCAL, ast.ARGUMENT, ast.THIS, ast.THAT, ast.TEMP, ast.POINTER:
+		assembly = cw.getPopMemoryAccessAssembly(segment, index)
 	}
 
+	return assembly
+}
+
+func (cw *CodeWriter) getPopMemoryAccessAssembly(segment ast.SegmentSymbol, index int) string {
+	assembly := ""
+	assembly += "@" + strconv.Itoa(index) + "\r\n"
+	assembly += "D=A" + "\r\n"
+
+	switch segment {
+	case ast.LOCAL:
+		assembly += "@LCL" + "\r\n"
+		assembly += "A=M" + "\r\n"
+	case ast.ARGUMENT:
+		assembly += "@ARG" + "\r\n"
+		assembly += "A=M" + "\r\n"
+	case ast.THIS:
+		assembly += "@THIS" + "\r\n"
+		assembly += "A=M" + "\r\n"
+	case ast.THAT:
+		assembly += "@THAT" + "\r\n"
+		assembly += "A=M" + "\r\n"
+	case ast.TEMP:
+		assembly += "@" + strconv.Itoa(TEMP_BASE_ADDRESS) + "\r\n"
+	case ast.POINTER:
+		assembly += "@" + strconv.Itoa(POINTER_BASE_ADDRESS) + "\r\n"
+	}
+	assembly += "D=D+A" + "\r\n"
+	assembly += "@temp" + "\r\n"
+	assembly += "M=D" + "\r\n"
+	assembly += "@SP" + "\r\n"
+	assembly += "A=M" + "\r\n"
+	assembly += "A=A-1" + "\r\n"
+	assembly += "D=M" + "\r\n"
+	assembly += "@temp" + "\r\n"
+	assembly += "A=M" + "\r\n"
+	assembly += "M=D" + "\r\n"
+	assembly += "@SP" + "\r\n"
+	assembly += "M=M-1" + "\r\n"
 	return assembly
 }
