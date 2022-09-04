@@ -1,6 +1,7 @@
 package codewriter
 
 import (
+	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -192,6 +193,8 @@ func (cw *CodeWriter) getPushAssembly(segment ast.SegmentSymbol, index int) stri
 		assembly = cw.getPushConstantAssembly(index)
 	case ast.LOCAL, ast.ARGUMENT, ast.THIS, ast.THAT, ast.TEMP, ast.POINTER:
 		assembly = cw.getPushMemoryAccessAssembly(segment, index)
+	case ast.STATIC:
+		assembly = cw.getPushStaticAssembly(index)
 	}
 
 	return assembly
@@ -245,11 +248,25 @@ func (cw *CodeWriter) getPushMemoryAccessAssembly(segment ast.SegmentSymbol, ind
 	return assembly
 }
 
+func (cw *CodeWriter) getPushStaticAssembly(index int) string {
+	assembly := ""
+	assembly += fmt.Sprintf("@%s.%d", cw.vmClassName, index) + "\r\n"
+	assembly += "D=M" + "\r\n"
+	assembly += "@SP" + "\r\n"
+	assembly += "A=M" + "\r\n"
+	assembly += "M=D" + "\r\n"
+	assembly += "@SP" + "\r\n"
+	assembly += "M=M+1" + "\r\n"
+	return assembly
+}
+
 func (cw *CodeWriter) getPopAssembly(segment ast.SegmentSymbol, index int) string {
 	var assembly string
 	switch segment {
 	case ast.LOCAL, ast.ARGUMENT, ast.THIS, ast.THAT, ast.TEMP, ast.POINTER:
 		assembly = cw.getPopMemoryAccessAssembly(segment, index)
+	case ast.STATIC:
+		assembly = cw.getPopStaticAssembly(index)
 	}
 
 	return assembly
@@ -287,6 +304,19 @@ func (cw *CodeWriter) getPopMemoryAccessAssembly(segment ast.SegmentSymbol, inde
 	assembly += "D=M" + "\r\n"
 	assembly += "@temp" + "\r\n"
 	assembly += "A=M" + "\r\n"
+	assembly += "M=D" + "\r\n"
+	assembly += "@SP" + "\r\n"
+	assembly += "M=M-1" + "\r\n"
+	return assembly
+}
+
+func (cw *CodeWriter) getPopStaticAssembly(index int) string {
+	assembly := ""
+	assembly += "@SP" + "\r\n"
+	assembly += "A=M" + "\r\n"
+	assembly += "A=A-1" + "\r\n"
+	assembly += "D=M" + "\r\n"
+	assembly += fmt.Sprintf("@%s.%d", cw.vmClassName, index) + "\r\n"
 	assembly += "M=D" + "\r\n"
 	assembly += "@SP" + "\r\n"
 	assembly += "M=M-1" + "\r\n"
