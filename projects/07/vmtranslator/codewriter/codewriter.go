@@ -186,6 +186,8 @@ func (cw *CodeWriter) getPushAssembly(segment ast.SegmentSymbol, index int) stri
 	switch segment {
 	case ast.CONSTANT:
 		assembly = cw.getPushConstantAssembly(index)
+	case ast.LOCAL, ast.ARGUMENT, ast.THIS, ast.THAT:
+		assembly = cw.getPushMemoryAccessAssembly(segment, index)
 	}
 
 	return assembly
@@ -195,6 +197,31 @@ func (cw *CodeWriter) getPushConstantAssembly(index int) string {
 	assembly := ""
 	assembly += "@" + strconv.Itoa(index) + "\r\n"
 	assembly += "D=A" + "\r\n"
+	assembly += "@SP" + "\r\n"
+	assembly += "A=M" + "\r\n"
+	assembly += "M=D" + "\r\n"
+	assembly += "@SP" + "\r\n"
+	assembly += "M=M+1" + "\r\n"
+	return assembly
+}
+
+func (cw *CodeWriter) getPushMemoryAccessAssembly(segment ast.SegmentSymbol, index int) string {
+	assembly := ""
+	assembly += "@" + strconv.Itoa(index) + "\r\n"
+	assembly += "D=A" + "\r\n"
+	switch segment {
+	case ast.LOCAL:
+		assembly += "@LCL" + "\r\n"
+	case ast.ARGUMENT:
+		assembly += "@ARG" + "\r\n"
+	case ast.THIS:
+		assembly += "@THIS" + "\r\n"
+	case ast.THAT:
+		assembly += "@THAT" + "\r\n"
+	}
+	assembly += "A=M" + "\r\n"
+	assembly += "A=D+A" + "\r\n"
+	assembly += "D=M" + "\r\n"
 	assembly += "@SP" + "\r\n"
 	assembly += "A=M" + "\r\n"
 	assembly += "M=D" + "\r\n"
