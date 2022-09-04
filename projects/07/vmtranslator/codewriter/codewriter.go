@@ -2,6 +2,7 @@ package codewriter
 
 import (
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"strconv"
 	"vmtranslator/ast"
@@ -107,12 +108,19 @@ func (cw *CodeWriter) getNegAssembly() string {
 func (cw *CodeWriter) getCompareAssembly(compareCommand ast.CommandSymbol) string {
 	assembly := ""
 	assembly += "@SP" + "\r\n"
+	assembly += "M=M-1" + "\r\n"
 	assembly += "A=M" + "\r\n"
-	assembly += "A=A-1" + "\r\n"
 	assembly += "D=M" + "\r\n"
-	assembly += "A=A-1" + "\r\n"
+	assembly += "@SP" + "\r\n"
+	assembly += "M=M-1" + "\r\n"
+	assembly += "A=M" + "\r\n"
 	assembly += "D=M-D" + "\r\n"
-	assembly += "@TRUE" + "\r\n"
+
+	// ランダムな数字を生成
+	randomLabelNumber := strconv.Itoa(rand.Int())
+
+	assembly += "@TRUE_" + randomLabelNumber + "\r\n"
+
 	switch compareCommand {
 	case ast.EQ:
 		assembly += "D;JEQ" + "\r\n"
@@ -121,16 +129,20 @@ func (cw *CodeWriter) getCompareAssembly(compareCommand ast.CommandSymbol) strin
 	case ast.LT:
 		assembly += "D;JLT" + "\r\n"
 	}
-	assembly += "M=0" + "\r\n"
-	assembly += "@NEXT" + "\r\n"
-	assembly += "0;JMP" + "\r\n"
-	assembly += "(TRUE)" + "\r\n"
-	assembly += "M=-1" + "\r\n"
-	assembly += "@NEXT" + "\r\n"
-	assembly += "0;JMP" + "\r\n"
-	assembly += "(NEXT)" + "\r\n"
 	assembly += "@SP" + "\r\n"
-	assembly += "M=M-1" + "\r\n"
+	assembly += "A=M" + "\r\n"
+	assembly += "M=0" + "\r\n"
+	assembly += "@NEXT_" + randomLabelNumber + "\r\n"
+	assembly += "0;JMP" + "\r\n"
+	assembly += "(TRUE_" + randomLabelNumber + ")" + "\r\n"
+	assembly += "@SP" + "\r\n"
+	assembly += "A=M" + "\r\n"
+	assembly += "M=-1" + "\r\n"
+	assembly += "@NEXT_" + randomLabelNumber + "\r\n"
+	assembly += "0;JMP" + "\r\n"
+	assembly += "(NEXT_" + randomLabelNumber + ")" + "\r\n"
+	assembly += "@SP" + "\r\n"
+	assembly += "M=M+1" + "\r\n"
 	return assembly
 }
 
