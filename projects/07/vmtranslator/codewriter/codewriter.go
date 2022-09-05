@@ -17,9 +17,13 @@ type CodeWriter struct {
 	vmClassName string
 }
 
-func New() *CodeWriter {
+func New(fileName string) *CodeWriter {
+	return &CodeWriter{fileName: fileName, assembly: []byte{}}
+}
+
+func (cw *CodeWriter) WriteInit() {
 	assembly := getInitAssembly()
-	return &CodeWriter{assembly: []byte(assembly)}
+	cw.assembly = []byte(assembly)
 }
 
 func getInitAssembly() string {
@@ -32,9 +36,8 @@ func getInitAssembly() string {
 	return assembly
 }
 
-func (cw *CodeWriter) SetFileName(fileName string) {
-	cw.fileName = fileName
-	cw.vmClassName = strings.Split(path.Base(fileName), ".")[0]
+func (cw *CodeWriter) SetVmClassName() {
+	cw.vmClassName = strings.Split(path.Base(cw.fileName), ".")[0]
 }
 
 func (cw *CodeWriter) WriteArithmetic(command ast.CommandSymbol) {
@@ -68,6 +71,21 @@ func (cw *CodeWriter) WritePushPop(command ast.CommandSymbol, segment ast.Segmen
 		assembly = cw.getPopAssembly(segment, index)
 	}
 
+	cw.assembly = append(cw.assembly, []byte(assembly)...)
+}
+
+func (cw *CodeWriter) WriteLabel(label string) {
+	assembly := cw.getLabelAssembly(label)
+	cw.assembly = append(cw.assembly, []byte(assembly)...)
+}
+
+func (cw *CodeWriter) WriteGoto(label string) {
+	assembly := cw.getGotoAssembly(label)
+	cw.assembly = append(cw.assembly, []byte(assembly)...)
+}
+
+func (cw *CodeWriter) WriteIf(label string) {
+	assembly := cw.getIfGotoAssembly(label)
 	cw.assembly = append(cw.assembly, []byte(assembly)...)
 }
 
@@ -320,5 +338,29 @@ func (cw *CodeWriter) getPopStaticAssembly(index int) string {
 	assembly += "M=D" + "\r\n"
 	assembly += "@SP" + "\r\n"
 	assembly += "M=M-1" + "\r\n"
+	return assembly
+}
+
+func (cw *CodeWriter) getLabelAssembly(label string) string {
+	assembly := ""
+	assembly += "(" + label + ")" + "\r\n"
+	return assembly
+}
+
+func (cw *CodeWriter) getGotoAssembly(label string) string {
+	assembly := ""
+	assembly += "@" + label + "\r\n"
+	assembly += "0;JMP" + "\r\n"
+	return assembly
+}
+
+func (cw *CodeWriter) getIfGotoAssembly(label string) string {
+	assembly := ""
+	assembly += "@SP" + "\r\n"
+	assembly += "M=M-1" + "\r\n"
+	assembly += "A=M" + "\r\n"
+	assembly += "D=M" + "\r\n"
+	assembly += "@" + label + "\r\n"
+	assembly += "D;JNE" + "\r\n"
 	return assembly
 }

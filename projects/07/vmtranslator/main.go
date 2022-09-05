@@ -25,12 +25,14 @@ func main() {
 }
 
 func Translate(input string, asmFile string) {
-	cw := codewriter.New()
+	cw := codewriter.New(asmFile)
 
 	// TODO: 複数ファイル対応
 	p := parser.New(input)
 
-	cw.SetFileName(asmFile)
+	cw.SetVmClassName()
+
+	cw.WriteInit()
 
 	for p.HasMoreCommands() {
 		p.SetCurrentCommandArray()
@@ -41,6 +43,12 @@ func Translate(input string, asmFile string) {
 			cw.WritePushPop(ast.POP, ast.SegmentSymbol(p.Arg1()), p.Arg2())
 		case ast.C_ARITHMETIC:
 			cw.WriteArithmetic(ast.CommandSymbol(p.Arg1()))
+		case ast.C_LABEL:
+			cw.WriteLabel(p.Arg1())
+		case ast.C_GOTO:
+			cw.WriteGoto(p.Arg1())
+		case ast.C_IF:
+			cw.WriteIf(p.Arg1())
 		}
 
 		p.Advance()
