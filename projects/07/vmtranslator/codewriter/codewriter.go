@@ -5,9 +5,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"os"
-	"path"
 	"strconv"
-	"strings"
 	"vmtranslator/ast"
 )
 
@@ -22,22 +20,24 @@ func New(fileName string) *CodeWriter {
 }
 
 func (cw *CodeWriter) WriteInit() {
-	assembly := getInitAssembly()
+	assembly := cw.getInitAssembly()
 	cw.assembly = []byte(assembly)
 }
 
-func getInitAssembly() string {
+func (cw *CodeWriter) getInitAssembly() string {
 	assembly := ""
-	// SPに256を設定
+	// SP=256
 	assembly += "@256" + "\r\n"
 	assembly += "D=A" + "\r\n"
 	assembly += "@SP" + "\r\n"
 	assembly += "M=D" + "\r\n"
+	// call Sys.init
+	assembly += cw.getCallAssembly("Sys.init", 0)
 	return assembly
 }
 
-func (cw *CodeWriter) SetVmClassName() {
-	cw.vmClassName = strings.Split(path.Base(cw.fileName), ".")[0]
+func (cw *CodeWriter) SetVmClassName(vmClassName string) {
+	cw.vmClassName = vmClassName
 }
 
 func (cw *CodeWriter) WriteArithmetic(command ast.CommandSymbol) {
