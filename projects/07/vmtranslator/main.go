@@ -49,6 +49,12 @@ func Translate(input string, asmFile string) {
 			cw.WriteGoto(p.Arg1())
 		case ast.C_IF:
 			cw.WriteIf(p.Arg1())
+		case ast.C_CALL:
+			cw.WriteCall(p.Arg1(), p.Arg2())
+		case ast.C_RETURN:
+			cw.WriteReturn()
+		case ast.C_FUNCTION:
+			cw.WriteFunction(p.Arg1(), p.Arg2())
 		}
 
 		p.Advance()

@@ -89,6 +89,21 @@ func (cw *CodeWriter) WriteIf(label string) {
 	cw.assembly = append(cw.assembly, []byte(assembly)...)
 }
 
+func (cw *CodeWriter) WriteCall(functionName string, numArgs int) {
+	assembly := cw.getCallAssembly(functionName, numArgs)
+	cw.assembly = append(cw.assembly, []byte(assembly)...)
+}
+
+func (cw *CodeWriter) WriteReturn() {
+	assembly := cw.getReturnAssembly()
+	cw.assembly = append(cw.assembly, []byte(assembly)...)
+}
+
+func (cw *CodeWriter) WriteFunction(functionName string, numLocals int) {
+	assembly := cw.getFunctionAssembly(functionName, numLocals)
+	cw.assembly = append(cw.assembly, []byte(assembly)...)
+}
+
 func (cw *CodeWriter) Close() {
 	ioutil.WriteFile(cw.fileName, cw.assembly, os.ModePerm)
 }
@@ -362,5 +377,145 @@ func (cw *CodeWriter) getIfGotoAssembly(label string) string {
 	assembly += "D=M" + "\r\n"
 	assembly += "@" + label + "\r\n"
 	assembly += "D;JNE" + "\r\n"
+	return assembly
+}
+
+func (cw *CodeWriter) getCallAssembly(functionName string, numArgs int) string {
+	assembly := ""
+
+	// ランダムな数字を生成
+	randomLabelNumber := strconv.Itoa(rand.Int())
+
+	returnAddressLabel := "RETURN_" + randomLabelNumber
+
+	// push return-address
+	assembly += "@" + returnAddressLabel + "\r\n"
+	assembly += "D=A" + "\r\n"
+	assembly += "@SP" + "\r\n"
+	assembly += "A=M" + "\r\n"
+	assembly += "M=D" + "\r\n"
+	assembly += "@SP" + "\r\n"
+	assembly += "M=M+1" + "\r\n"
+	// push LCL
+	assembly += "@LCL" + "\r\n"
+	assembly += "D=M" + "\r\n"
+	assembly += "@SP" + "\r\n"
+	assembly += "A=M" + "\r\n"
+	assembly += "M=D" + "\r\n"
+	assembly += "@SP" + "\r\n"
+	assembly += "M=M+1" + "\r\n"
+	// push ARG
+	assembly += "@ARG" + "\r\n"
+	assembly += "D=M" + "\r\n"
+	assembly += "@SP" + "\r\n"
+	assembly += "A=M" + "\r\n"
+	assembly += "M=D" + "\r\n"
+	assembly += "@SP" + "\r\n"
+	assembly += "M=M+1" + "\r\n"
+	// push THIS
+	assembly += "@THIS" + "\r\n"
+	assembly += "D=M" + "\r\n"
+	assembly += "@SP" + "\r\n"
+	assembly += "A=M" + "\r\n"
+	assembly += "M=D" + "\r\n"
+	assembly += "@SP" + "\r\n"
+	assembly += "M=M+1" + "\r\n"
+	// push THAT
+	assembly += "@THAT" + "\r\n"
+	assembly += "D=M" + "\r\n"
+	assembly += "@SP" + "\r\n"
+	assembly += "A=M" + "\r\n"
+	assembly += "M=D" + "\r\n"
+	assembly += "@SP" + "\r\n"
+	assembly += "M=M+1" + "\r\n"
+	// ARG=SP-n-5 (n=numArgs)
+	assembly += "@" + strconv.Itoa(numArgs+5) + "\r\n"
+	assembly += "D=A" + "\r\n"
+	assembly += "@SP" + "\r\n"
+	assembly += "D=M-D" + "\r\n"
+	assembly += "@ARG" + "\r\n"
+	assembly += "M=D" + "\r\n"
+	// LCL=SP
+	assembly += "@SP" + "\r\n"
+	assembly += "D=M" + "\r\n"
+	assembly += "@LCL" + "\r\n"
+	assembly += "M=D" + "\r\n"
+	// goto f (f=functionName)
+	assembly += cw.getGotoAssembly(functionName)
+	// (return-address)
+	assembly += cw.getLabelAssembly(returnAddressLabel)
+
+	return assembly
+}
+
+func (cw *CodeWriter) getReturnAssembly() string {
+	assembly := ""
+	// FRAME=LCL
+	assembly += "@LCL" + "\r\n"
+	assembly += "D=M" + "\r\n"
+	assembly += "@FRAME" + "\r\n"
+	assembly += "M=D" + "\r\n"
+	// RET=*(FRAME-5)
+	assembly += "@5" + "\r\n"
+	assembly += "D=A" + "\r\n"
+	assembly += "@FRAME" + "\r\n"
+	assembly += "A=M-D" + "\r\n"
+	assembly += "D=M" + "\r\n"
+	assembly += "@RET" + "\r\n"
+	assembly += "M=D" + "\r\n"
+	// *ARG=pop()
+	assembly += cw.getPopMemoryAccessAssembly(ast.ARGUMENT, 0)
+	// SP=ARG+1
+	assembly += "@ARG" + "\r\n"
+	assembly += "D=M" + "\r\n"
+	assembly += "@SP" + "\r\n"
+	assembly += "M=D+1" + "\r\n"
+	// THAT=*(FRAME-1)
+	assembly += "@1" + "\r\n"
+	assembly += "D=A" + "\r\n"
+	assembly += "@FRAME" + "\r\n"
+	assembly += "A=M-D" + "\r\n"
+	assembly += "D=M" + "\r\n"
+	assembly += "@THAT" + "\r\n"
+	assembly += "M=D" + "\r\n"
+	// THIS=*(FRAME-2)
+	assembly += "@2" + "\r\n"
+	assembly += "D=A" + "\r\n"
+	assembly += "@FRAME" + "\r\n"
+	assembly += "A=M-D" + "\r\n"
+	assembly += "D=M" + "\r\n"
+	assembly += "@THIS" + "\r\n"
+	assembly += "M=D" + "\r\n"
+	// ARG=*(FRAME-3)
+	assembly += "@3" + "\r\n"
+	assembly += "D=A" + "\r\n"
+	assembly += "@FRAME" + "\r\n"
+	assembly += "A=M-D" + "\r\n"
+	assembly += "D=M" + "\r\n"
+	assembly += "@ARG" + "\r\n"
+	assembly += "M=D" + "\r\n"
+	// LCL=*(FRAME-4)
+	assembly += "@4" + "\r\n"
+	assembly += "D=A" + "\r\n"
+	assembly += "@FRAME" + "\r\n"
+	assembly += "A=M-D" + "\r\n"
+	assembly += "D=M" + "\r\n"
+	assembly += "@LCL" + "\r\n"
+	assembly += "M=D" + "\r\n"
+	// goto RET
+	assembly += "@RET" + "\r\n"
+	assembly += "A=M" + "\r\n"
+	assembly += "0;JMP" + "\r\n"
+	return assembly
+}
+
+func (cw *CodeWriter) getFunctionAssembly(functionName string, numLocals int) string {
+	assembly := ""
+	assembly += cw.getLabelAssembly(functionName)
+
+	for i := 0; i < numLocals; i++ {
+		assembly += cw.getPushConstantAssembly(0)
+	}
+
 	return assembly
 }
